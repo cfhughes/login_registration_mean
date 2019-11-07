@@ -35,24 +35,28 @@ app.get('/', (req, res) => {
 })
 
 app.post('/login', (req, res) => {
-    User.findOne({"email" : req.body.email})
-    .then((user)=>{
-        if(bcrypt.compareSync(req.body.password, user.password_hash)){
-            res.redirect("/success")
-        }else{
-            req.flash("reg", "Wrong password");
+    User.findOne({ "email": req.body.email })
+        .then((user) => {
+            return bcrypt.compare(req.body.password, user.password_hash);
+        })
+        .then((result) => {
+            if (result){
+                res.redirect("/success")
+            } else {
+                req.flash("reg", "Wrong password");
+                res.redirect("/");
+            }
+        })
+        .catch((err) => {
+            for (var key in err.errors) {
+                req.flash("reg", err.errors[key].message);
+            }
+            req.flash("reg", "Error finding user account");
             res.redirect("/");
-        }
-    })
-    .catch((err)=>{
-        for (var key in err.errors) {
-            req.flash("reg", err.errors[key].message);
-        }
-        res.redirect("/");
-    })
+        })
 
 
-    
+
 })
 
 app.post('/register', (req, res) => {
@@ -88,14 +92,15 @@ app.post('/register', (req, res) => {
     if (error) {
         res.redirect("/")
     } else {
-        //Hash the password
-       // var salt = bcrypt.genSaltSync(10);
-        req.body.password_hash = bcrypt.hashSync(req.body.password, 10);
-        console.log(req.body.password_hash);
-        delete req.body.password;
-        delete req.body.cpassword;
-        //Create the user
-        User.create(req.body)
+        //Hash password (asynchronously)
+        bcrypt.hash(req.body.password, 10)
+            .then((hash) => {
+                req.body.password_hash = hash;
+                delete req.body.password;
+                delete req.body.cpassword;
+                //Create the user
+                return User.create(req.body);
+            })
             .then((user) => {
                 req.flash("reg", "User created! " + user.email);
                 res.redirect("/");
@@ -105,7 +110,7 @@ app.post('/register', (req, res) => {
                     req.flash("reg", err.errors[key].message);
                 }
                 res.redirect("/");
-            })
+            });
     }
 
 })
