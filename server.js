@@ -40,6 +40,7 @@ app.post('/login', (req, res) => {
             return bcrypt.compare(req.body.password, user.password_hash);
         })
         .then((result) => {
+            //`result` here is whether the password was correct or not
             if (result){
                 res.redirect("/success")
             } else {
@@ -93,7 +94,7 @@ app.post('/register', (req, res) => {
         res.redirect("/")
     } else {
         //Hash password (asynchronously)
-        bcrypt.hash(req.body.password, 10)
+        bcrypt.hash(req.body.password, 8)
             .then((hash) => {
                 req.body.password_hash = hash;
                 delete req.body.password;
