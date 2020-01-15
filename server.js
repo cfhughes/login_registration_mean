@@ -18,45 +18,25 @@ app.use(session({
     cookie: { maxAge: 60000 }
 }))
 
-mongoose.connect('mongodb://localhost/users_login', { useNewUrlParser: true });
-
-const UserSchema = new mongoose.Schema({
-    email: { type: String, required: true },
-    first_name: { type: String, required: true },
-    last_name: { type: String, required: true },
-    birthday: { type: String, required: true },
-    password_hash: { type: String, required: true },
-}, { timestamps: true });
-
-const User = mongoose.model('User', UserSchema);
+var user = {
+    email : 'user@example.com',
+    password: 'password'
+}
 
 app.get('/', (req, res) => {
     res.render('index');
 })
 
 app.post('/login', (req, res) => {
-    User.findOne({ "email": req.body.email })
-        .then((user) => {
-            return bcrypt.compare(req.body.password, user.password_hash);
-        })
-        .then((result) => {
-            //`result` here is whether the password was correct or not
-            if (result){
-                res.redirect("/success")
-            } else {
-                req.flash("reg", "Wrong password");
-                res.redirect("/");
-            }
-        })
-        .catch((err) => {
-            for (var key in err.errors) {
-                req.flash("reg", err.errors[key].message);
-            }
-            req.flash("reg", "Error finding user account");
-            res.redirect("/");
-        })
-
-
+    
+    //Compare to password
+    if (req.body.password == user.password){
+        res.redirect("/success")
+    }
+    else {
+        req.flash("reg", "Wrong password");
+        res.redirect("/");
+    }
 
 })
 
@@ -67,7 +47,7 @@ app.post('/register', (req, res) => {
         error = true;
     }
     //Added an inner set of parenthesis here to make this work
-    if (!(req.body.first_name.length > 1)) {
+    if (req.body.first_name.length <= 1) {
         req.flash('reg', "Please add more than one character to your first name");
         error = true;
     }
@@ -94,15 +74,15 @@ app.post('/register', (req, res) => {
         res.redirect("/")
     } else {
         //Hash password (asynchronously)
-        bcrypt.hash(req.body.password, 8)
+        bcrypt.hash(req.body.password, 12)
             .then((hash) => {
                 req.body.password_hash = hash;
                 delete req.body.password;
                 delete req.body.cpassword;
                 //Create the user
-                return User.create(req.body);
+                return req.body;
             })
-            .then((user) => {
+            .then((user) => { 
                 req.flash("reg", "User created! " + user.email);
                 res.redirect("/");
             })
